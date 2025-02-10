@@ -31,7 +31,7 @@ const ProductList = () => {
             <h4>Image Galery</h4>
             <hr />
             <Link className="btn btn-success mb-3" to="/add">
-              <IoMdAdd /> Add New
+              <IoMdAdd /> Add New Image Galery
             </Link>
             <Row>
               {products &&
