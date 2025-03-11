@@ -1,106 +1,134 @@
 import { useState } from "react";
-import { Button, Col, Row } from "react-bootstrap";
-import Form from "react-bootstrap/Form";
-import Figure from "react-bootstrap/Figure";
+import { Button, Col, Row, Form, Figure } from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { IoIosSave } from "react-icons/io";
 
 const AddProduct = () => {
-  const [name, setName] = useState("");
-  const [file, setFile] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    file: null
+  });
   const [preview, setPreview] = useState(null);
   const navigate = useNavigate();
 
-  const loadImage = (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const handleFileChange = (e) => {
     const image = e.target.files[0];
-    setFile(image);
+    if (!image) return;
+    
+    setFormData({
+      ...formData,
+      file: image
+    });
     setPreview(URL.createObjectURL(image));
   };
 
   const saveProduct = async (e) => {
     e.preventDefault();
-    const data = new FormData();
-    data.append("file", file);
-    data.append("name", name);
-    try {
-      const out = await axios.post("/api/products", data, {
-        headers: {
-          "Content-Type": "multipart/from-data",
-        },
+    
+    if (!formData.name.trim() || !formData.file) {
+      toast.error("Product name and image are required", {
+        position: "top-center"
       });
-      toast.info(out.data.message, {
-        position: "top-center",
+      return;
+    }
+
+    const data = new FormData();
+    data.append("file", formData.file);
+    data.append("name", formData.name);
+    
+    try {
+      const response = await axios.post("/api/products", data, {
+        headers: {
+          "Content-Type": "multipart/form-data" // Fixed typo from original code
+        }
+      });
+      
+      toast.success(response.data.message, {
+        position: "top-center"
       });
       navigate("/");
     } catch (error) {
-      const errMessage = JSON.parse(error.request.response);
-      toast.error(errMessage.message, {
-        position: "top-center",
+      const errorMessage = error.response?.data?.message || 
+                          "An error occurred while saving the product";
+      toast.error(errorMessage, {
+        position: "top-center"
       });
     }
   };
 
   return (
-    <>
-      <div className="container mt-3">
-        <Row>
-          <Col>
-            <h4>Add Product</h4>
-            <hr />
-            <form onSubmit={saveProduct}>
-              <Form.Group as={Row} className="mb-3" controlId="frmProductName">
-                <Form.Label column sm="2">
-                  Product Name
-                </Form.Label>
-                <Col sm="10">
-                  <Form.Control
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Product Name"
-                  />
-                </Col>
-              </Form.Group>
+    <div className="container mt-3">
+      <Row>
+        <Col>
+          <h4>Add Product</h4>
+          <hr />
+          <Form onSubmit={saveProduct}>
+            <Form.Group as={Row} className="mb-3" controlId="productName">
+              <Form.Label column sm="2">
+                Product Name
+              </Form.Label>
+              <Col sm="10">
+                <Form.Control
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Product Name"
+                  required
+                />
+              </Col>
+            </Form.Group>
 
-              <Form.Group as={Row} className="mb-3" controlId="frmProductImage">
-                <Form.Label column sm="2">
-                  Image
-                </Form.Label>
-                <Col sm="10">
-                  <Form.Control type="file" onChange={loadImage} />
-                </Col>
-              </Form.Group>
+            <Form.Group as={Row} className="mb-3" controlId="productImage">
+              <Form.Label column sm="2">
+                Image
+              </Form.Label>
+              <Col sm="10">
+                <Form.Control 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  required
+                />
+              </Col>
+            </Form.Group>
 
+            {preview && (
               <Row>
                 <Col md={{ span: 10, offset: 2 }}>
-                  {preview ? (
-                    <Figure>
-                      <Figure.Image
-                        width={171}
-                        height={180}
-                        alt="preview image"
-                        src={preview}
-                      />
-                    </Figure>
-                  ) : (
-                    ""
-                  )}
+                  <Figure>
+                    <Figure.Image
+                      width={171}
+                      height={180}
+                      alt="Product preview"
+                      src={preview}
+                    />
+                  </Figure>
                 </Col>
               </Row>
-              <Row>
-                <Col md={{ span: 10, offset: 2 }}>
-                  <Button type="submit" variant="success">
-                    <IoIosSave /> Save
-                  </Button>
-                </Col>
-              </Row>
-            </form>
-          </Col>
-        </Row>
-      </div>
-    </>
+            )}
+
+            <Row>
+              <Col md={{ span: 10, offset: 2 }}>
+                <Button type="submit" variant="success">
+                  <IoIosSave /> Save
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+        </Col>
+      </Row>
+    </div>
   );
 };
 
